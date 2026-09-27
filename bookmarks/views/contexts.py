@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 from django.db import models
 from django.http import Http404
 from django.urls import reverse
+from django.utils import timezone
 
 from bookmarks import queries, utils
 from bookmarks.forms import BookmarkSearchForm
@@ -177,6 +178,11 @@ class BookmarkItem:
             f"{link_status_label}; checked "
             f"{utils.humanize_absolute_date(bookmark.link_checked_at)}"
             if self.is_broken and bookmark.link_checked_at
+            else ""
+        )
+        self.remind_at_display = (
+            utils.humanize_absolute_date(timezone.localtime(bookmark.remind_at))
+            if bookmark.remind_at and is_editable
             else ""
         )
         self.is_archived = bookmark.is_archived

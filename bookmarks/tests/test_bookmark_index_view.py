@@ -309,6 +309,7 @@ class BookmarkIndexViewTestCase(
              <option value="bulk_unread">Mark as unread</option>
              <option value="bulk_refresh">Refresh from website</option>
              <option value="bulk_check">Check links</option>
+             <option value="bulk_snooze">Snooze 1 week</option>
            </select>
         """,
             html,
@@ -331,6 +332,7 @@ class BookmarkIndexViewTestCase(
              <option value="bulk_unread">Mark as unread</option>
              <option value="bulk_refresh">Refresh from website</option>
              <option value="bulk_check">Check links</option>
+             <option value="bulk_snooze">Snooze 1 week</option>
              <option value="bulk_snapshot">Create HTML snapshot</option>
           </select>
         """,
@@ -359,6 +361,7 @@ class BookmarkIndexViewTestCase(
              <option value="bulk_unshare">Unshare</option>
              <option value="bulk_refresh">Refresh from website</option>
              <option value="bulk_check">Check links</option>
+             <option value="bulk_snooze">Snooze 1 week</option>
            </select>
         """,
             html,
@@ -387,6 +390,7 @@ class BookmarkIndexViewTestCase(
              <option value="bulk_unshare">Unshare</option>
              <option value="bulk_refresh">Refresh from website</option>
              <option value="bulk_check">Check links</option>
+             <option value="bulk_snooze">Snooze 1 week</option>
              <option value="bulk_snapshot">Create HTML snapshot</option>
           </select>
         """,

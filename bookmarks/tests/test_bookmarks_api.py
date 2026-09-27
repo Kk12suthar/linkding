@@ -64,6 +64,12 @@ class BookmarksApiTestCase(LinkdingApiTestCase, BookmarkFactoryMixin):
             expectation["is_archived"] = bookmark.is_archived
             expectation["unread"] = bookmark.unread
             expectation["shared"] = bookmark.shared
+            if bookmark.owner == self.get_or_create_test_user():
+                expectation["remind_at"] = (
+                    bookmark.remind_at.isoformat().replace("+00:00", "Z")
+                    if bookmark.remind_at
+                    else None
+                )
             expectation["tag_names"] = tag_names
             expectation["date_added"] = bookmark.date_added.isoformat().replace(
                 "+00:00", "Z"

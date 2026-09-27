@@ -65,6 +65,7 @@ class BookmarkFactoryMixin:
         web_archive_snapshot_url: str = "",
         favicon_file: str = "",
         preview_image_file: str = "",
+        remind_at: datetime = None,
         added: datetime = None,
         modified: datetime = None,
     ):
@@ -95,6 +96,7 @@ class BookmarkFactoryMixin:
             web_archive_snapshot_url=web_archive_snapshot_url,
             favicon_file=favicon_file,
             preview_image_file=preview_image_file,
+            remind_at=remind_at,
         )
         bookmark.save()
         for tag in tags:

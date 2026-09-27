@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils import timezone
+from huey import crontab
 from huey.contrib.djhuey import HUEY as huey
 from huey.exceptions import TaskLockedException
 from waybackpy.exceptions import TooManyRequestsError, WaybackError
@@ -323,6 +324,23 @@ def _check_link_task(bookmark_id: int):
         # synthetic status instead of being retried forever by Huey.
         link_status = Bookmark.LINK_STATUS_UNREACHABLE
     _save_link_status(bookmark_id, checked_url, link_status)
+
+
+@huey.periodic_task(crontab(minute="*"))
+def process_due_bookmark_reminders():
+    if settings.LD_DISABLE_BACKGROUND_TASKS:
+        return
+
+    now = timezone.now()
+    Bookmark.objects.filter(
+        remind_at__isnull=False,
+        remind_at__lte=now,
+    ).update(
+        unread=True,
+        is_archived=False,
+        remind_at=None,
+        date_modified=now,
+    )
 
 
 def is_html_snapshot_feature_active() -> bool:

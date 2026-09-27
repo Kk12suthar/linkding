@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from django.utils import timezone
 
@@ -32,6 +33,8 @@ def create_bookmark(
         bookmark.date_added = timezone.now()
     if not bookmark.date_modified:
         bookmark.date_modified = timezone.now()
+    if bookmark.remind_at:
+        bookmark.is_archived = True
     bookmark.save()
     # Update tag list
     _update_bookmark_tags(bookmark, tag_string, current_user)
@@ -61,6 +64,8 @@ def update_bookmark(bookmark: Bookmark, tag_string, current_user: User):
         # invalidates the previous result until the new URL is checked.
         bookmark.link_status = None
         bookmark.link_checked_at = None
+    if bookmark.remind_at:
+        bookmark.is_archived = True
     # Update tag list
     _update_bookmark_tags(bookmark, tag_string, current_user)
     # Update dates
@@ -106,6 +111,7 @@ def archive_bookmarks(bookmark_ids: [int | str], current_user: User):
 
 def unarchive_bookmark(bookmark: Bookmark):
     bookmark.is_archived = False
+    bookmark.remind_at = None
     bookmark.date_modified = timezone.now()
     bookmark.save()
     return bookmark
@@ -115,7 +121,7 @@ def unarchive_bookmarks(bookmark_ids: [int | str], current_user: User):
     sanitized_bookmark_ids = _sanitize_id_list(bookmark_ids)
 
     Bookmark.objects.filter(owner=current_user, id__in=sanitized_bookmark_ids).update(
-        is_archived=False, date_modified=timezone.now()
+        is_archived=False, remind_at=None, date_modified=timezone.now()
     )
 
 
@@ -221,6 +227,17 @@ def check_bookmarks_links(bookmark_ids: [int | str], current_user: User):
         tasks.check_link(bookmark_id)
 
 
+def snooze_bookmarks(bookmark_ids: [int | str], current_user: User):
+    sanitized_bookmark_ids = _sanitize_id_list(bookmark_ids)
+    now = timezone.now()
+
+    Bookmark.objects.filter(owner=current_user, id__in=sanitized_bookmark_ids).update(
+        is_archived=True,
+        remind_at=now + timedelta(days=7),
+        date_modified=now,
+    )
+
+
 def create_html_snapshots(bookmark_ids: list[int | str], current_user: User):
     sanitized_bookmark_ids = _sanitize_id_list(bookmark_ids)
     owned_bookmarks = Bookmark.objects.filter(
@@ -236,6 +253,9 @@ def _merge_bookmark_data(from_bookmark: Bookmark, to_bookmark: Bookmark):
     to_bookmark.notes = from_bookmark.notes
     to_bookmark.unread = from_bookmark.unread
     to_bookmark.shared = from_bookmark.shared
+    if from_bookmark.remind_at is not None:
+        to_bookmark.remind_at = from_bookmark.remind_at
+        to_bookmark.is_archived = True
 
 
 def _update_bookmark_tags(bookmark: Bookmark, tag_string: str, user: User):

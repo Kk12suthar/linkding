@@ -35,7 +35,7 @@
                 {% endif %}
               </a>
             </div>
-            {% if bookmark_list.show_url %}
+              {% if bookmark_list.show_url %}
               <div class="url-path truncate">
                 <a href="{{ bookmark_item.url }}"
                    target="{{ bookmark_list.link_target }}"
@@ -76,6 +76,10 @@
                 {% else %}
                   <span>{{ bookmark_item.display_date }}</span>
                 {% endif %}
+                {% if not bookmark_list.is_preview %}<span>|</span>{% endif %}
+              {% endif %}
+              {% if bookmark_item.remind_at_display %}
+                <span class="reminder" title="Reminder scheduled">Remind {{ bookmark_item.remind_at_display }}</span>
                 {% if not bookmark_list.is_preview %}<span>|</span>{% endif %}
               {% endif %}
               {% if not bookmark_list.is_preview %}

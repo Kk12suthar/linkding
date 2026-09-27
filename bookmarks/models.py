@@ -71,6 +71,7 @@ class Bookmark(models.Model):
     preview_image_file = models.CharField(max_length=512, blank=True)
     link_status = models.IntegerField(null=True, blank=True, db_index=True)
     link_checked_at = models.DateTimeField(null=True, blank=True)
+    remind_at = models.DateTimeField(null=True, blank=True, db_index=True)
     unread = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
     shared = models.BooleanField(default=False)

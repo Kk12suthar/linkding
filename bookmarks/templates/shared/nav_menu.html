@@ -30,6 +30,14 @@
         <a href="{% url 'linkding:bookmarks.index' %}?q=!broken"
            class="menu-link">Broken</a>
       </li>
+      <li class="menu-item">
+        <a href="{% url 'linkding:bookmarks.archived' %}?q=!snoozed"
+           class="menu-link">Snoozed</a>
+      </li>
+      <li class="menu-item">
+        <a href="{% url 'linkding:bookmarks.index' %}?q=!due"
+           class="menu-link">Due reminders</a>
+      </li>
     </ul>
   </ld-dropdown>
   <ld-dropdown class="dropdown">
@@ -97,6 +105,14 @@
       <li class="menu-item">
         <a href="{% url 'linkding:bookmarks.index' %}?q=!broken"
            class="menu-link">Broken</a>
+      </li>
+      <li class="menu-item">
+        <a href="{% url 'linkding:bookmarks.archived' %}?q=!snoozed"
+           class="menu-link">Snoozed</a>
+      </li>
+      <li class="menu-item">
+        <a href="{% url 'linkding:bookmarks.index' %}?q=!due"
+           class="menu-link">Due reminders</a>
       </li>
       <div class="divider"></div>
       <li class="menu-item">

@@ -58,6 +58,13 @@
     </details>
   </div>
   <div class="form-group">
+    {% formlabel form.remind_at "Remind me" %}
+    {% formfield form.remind_at has_help=True %}
+    {% formhelp form.remind_at %}
+      Optional. The bookmark will return to the active unread list when the reminder is due. Times use the application timezone.
+    {% endformhelp %}
+  </div>
+  <div class="form-group">
     {% formfield form.unread label="Mark as unread" has_help=True %}
     {% formhelp form.unread %}
       Unread bookmarks can be filtered for, and marked as read after you had a chance to look at them.

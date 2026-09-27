@@ -36,6 +36,14 @@ class BookmarkForm(forms.ModelForm):
     title = forms.CharField(max_length=512, required=False, widget=FormInput)
     description = forms.CharField(required=False, widget=FormTextarea)
     notes = forms.CharField(required=False, widget=FormTextarea)
+    remind_at = forms.DateTimeField(
+        required=False,
+        input_formats=["%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S"],
+        widget=forms.DateTimeInput(
+            format="%Y-%m-%dT%H:%M",
+            attrs={"type": "datetime-local", "class": "form-input"},
+        ),
+    )
     unread = forms.BooleanField(required=False, widget=FormCheckbox)
     shared = forms.BooleanField(required=False, widget=FormCheckbox)
     # Hidden field that determines whether to close window/tab after saving the bookmark
@@ -49,6 +57,7 @@ class BookmarkForm(forms.ModelForm):
             "title",
             "description",
             "notes",
+            "remind_at",
             "unread",
             "shared",
             "auto_close",
@@ -70,7 +79,14 @@ class BookmarkForm(forms.ModelForm):
                 "shared": request.user_profile.default_mark_shared,
             }
         if instance is not None and request.method == "GET":
-            initial = {"tag_string": build_tag_string(instance.tag_names, " ")}
+            initial = {
+                "tag_string": build_tag_string(instance.tag_names, " "),
+                "remind_at": (
+                    timezone.localtime(instance.remind_at).strftime("%Y-%m-%dT%H:%M")
+                    if instance.remind_at
+                    else ""
+                ),
+            }
         data = request.POST if request.method == "POST" else None
         super().__init__(
             data, instance=instance, initial=initial, error_class=FormErrorList

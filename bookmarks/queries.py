@@ -1,4 +1,5 @@
 import contextlib
+from datetime import datetime, time, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -6,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Case, CharField, Exists, OuterRef, Q, QuerySet, When
 from django.db.models.expressions import RawSQL
 from django.db.models.functions import Lower
+from django.utils import timezone
 
 from bookmarks.models import (
     Bookmark,
@@ -57,6 +59,14 @@ def query_shared_bookmarks(
     return _base_bookmarks_query(user, profile, search).filter(conditions)
 
 
+def _due_reminder_cutoff():
+    local_now = timezone.localtime(timezone.now())
+    tomorrow = local_now.date() + timedelta(days=1)
+    return timezone.make_aware(
+        datetime.combine(tomorrow, time.min), timezone.get_current_timezone()
+    )
+
+
 def _convert_ast_to_q_object(ast_node: SearchExpression, profile: UserProfile) -> Q:
     if isinstance(ast_node, TermExpression):
         # Search across title, description, notes, URL
@@ -97,6 +107,10 @@ def _convert_ast_to_q_object(ast_node: SearchExpression, profile: UserProfile) -
             return Q(link_status__gte=400) | Q(
                 link_status=Bookmark.LINK_STATUS_UNREACHABLE
             )
+        elif ast_node.keyword.lower() == "due":
+            return Q(remind_at__isnull=False, remind_at__lt=_due_reminder_cutoff())
+        elif ast_node.keyword.lower() == "snoozed":
+            return Q(remind_at__gt=timezone.now())
         else:
             # Unknown keyword, return empty Q object (matches all)
             return Q()
@@ -178,6 +192,12 @@ def _filter_search_query_legacy(
         query_set = query_set.filter(
             Q(link_status__gte=400) | Q(link_status=Bookmark.LINK_STATUS_UNREACHABLE)
         )
+    if query["due"]:
+        query_set = query_set.filter(
+            remind_at__isnull=False, remind_at__lt=_due_reminder_cutoff()
+        )
+    if query["snoozed"]:
+        query_set = query_set.filter(remind_at__gt=timezone.now())
 
     return query_set
 
@@ -421,6 +441,8 @@ def parse_query_string(query_string):
     untagged = "!untagged" in keywords
     unread = "!unread" in keywords
     broken = "!broken" in keywords
+    due = "!due" in keywords
+    snoozed = "!snoozed" in keywords
 
     return {
         "search_terms": search_terms,
@@ -428,4 +450,6 @@ def parse_query_string(query_string):
         "untagged": untagged,
         "unread": unread,
         "broken": broken,
+        "due": due,
+        "snoozed": snoozed,
     }

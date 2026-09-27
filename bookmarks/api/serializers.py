@@ -77,6 +77,7 @@ class BookmarkSerializer(serializers.ModelSerializer):
             "is_archived",
             "unread",
             "shared",
+            "remind_at",
             "tag_names",
             "date_added",
             "date_modified",
@@ -92,6 +93,17 @@ class BookmarkSerializer(serializers.ModelSerializer):
             "website_description",
         ]
         list_serializer_class = BookmarkListSerializer
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if (
+            not request
+            or not request.user.is_authenticated
+            or instance.owner_id != request.user.id
+        ):
+            data.pop("remind_at", None)
+        return data
 
     # Custom tag_names field to allow passing a list of tag names to create/update
     tag_names = TagListField(required=False)

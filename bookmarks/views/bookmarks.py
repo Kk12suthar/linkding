@@ -29,6 +29,7 @@ from bookmarks.services.bookmarks import (
     mark_bookmarks_as_unread,
     refresh_bookmarks_metadata,
     share_bookmarks,
+    snooze_bookmarks,
     tag_bookmarks,
     unarchive_bookmark,
     unarchive_bookmarks,
@@ -421,6 +422,8 @@ def handle_action(request: HttpRequest, query: QuerySet[Bookmark] = None):
             return refresh_bookmarks_metadata(bookmark_ids, request.user)
         if bulk_action == "bulk_check":
             return check_bookmarks_links(bookmark_ids, request.user)
+        if bulk_action == "bulk_snooze":
+            return snooze_bookmarks(bookmark_ids, request.user)
         if bulk_action == "bulk_snapshot":
             return create_html_snapshots(bookmark_ids, request.user)
 
