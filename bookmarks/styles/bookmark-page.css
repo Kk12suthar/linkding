@@ -210,6 +210,14 @@ ul.bookmark-list {
       text-overflow: ellipsis;
     }
 
+    & .link-status {
+      margin-left: var(--unit-1);
+    }
+
+    & .link-status.badge::after {
+      background: var(--error-color);
+    }
+
     & .title a[data-tooltip]:hover::after,
     & .title a[data-tooltip]:focus::after {
       content: attr(data-tooltip);

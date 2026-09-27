@@ -347,6 +347,18 @@ class GuardedRequestsTestCase(LocalServerTestCase):
         with self.assertRaises(requests.ConnectionError):
             http_client.get(self.server.url("127.0.0.1"), timeout=5)
 
+    def test_does_not_trust_environment_proxy_settings(self):
+        with mock.patch("bookmarks.services.http_client.requests.Session") as session_class:
+            session = session_class.return_value
+            session.request.return_value = mock.Mock()
+            http_client.get("https://example.com", timeout=5)
+
+        self.assertFalse(session.trust_env)
+
+    def test_rejects_explicit_proxies(self):
+        with self.assertRaises(ValueError):
+            http_client.get("https://example.com", proxies={})
+
     @override_settings(LD_ALLOWED_INTERNAL_HOSTS="*")
     def test_allow_all(self):
         response = http_client.get(self.server.url("127.0.0.1"), timeout=5)

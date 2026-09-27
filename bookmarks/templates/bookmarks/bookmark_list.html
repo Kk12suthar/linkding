@@ -27,6 +27,12 @@
                  target="{{ bookmark_list.link_target }}"
                  rel="noopener">
                 <span>{{ bookmark_item.title }}</span>
+                {% if bookmark_item.is_broken %}
+                  <span class="link-status badge"
+                        data-badge="broken"
+                        title="{{ bookmark_item.link_status_tooltip }}"
+                        aria-label="{{ bookmark_item.link_status_tooltip }}"></span>
+                {% endif %}
               </a>
             </div>
             {% if bookmark_list.show_url %}

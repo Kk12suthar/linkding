@@ -22,6 +22,7 @@ from bookmarks.services import tasks
 from bookmarks.services.bookmarks import (
     archive_bookmark,
     archive_bookmarks,
+    check_bookmarks_links,
     create_html_snapshots,
     delete_bookmarks,
     mark_bookmarks_as_read,
@@ -418,6 +419,8 @@ def handle_action(request: HttpRequest, query: QuerySet[Bookmark] = None):
             return unshare_bookmarks(bookmark_ids, request.user)
         if bulk_action == "bulk_refresh":
             return refresh_bookmarks_metadata(bookmark_ids, request.user)
+        if bulk_action == "bulk_check":
+            return check_bookmarks_links(bookmark_ids, request.user)
         if bulk_action == "bulk_snapshot":
             return create_html_snapshots(bookmark_ids, request.user)
 

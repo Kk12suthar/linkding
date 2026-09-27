@@ -164,6 +164,21 @@ class BookmarkItem:
                 )
         self.favicon_file = bookmark.favicon_file
         self.preview_image_file = bookmark.preview_image_file
+        self.is_broken = bookmark.link_status == Bookmark.LINK_STATUS_UNREACHABLE or (
+            bookmark.link_status is not None and bookmark.link_status >= 400
+        )
+        if bookmark.link_status == Bookmark.LINK_STATUS_UNREACHABLE:
+            link_status_label = "unreachable"
+        elif bookmark.link_status is not None and bookmark.link_status >= 400:
+            link_status_label = f"HTTP {bookmark.link_status}"
+        else:
+            link_status_label = ""
+        self.link_status_tooltip = (
+            f"{link_status_label}; checked "
+            f"{utils.humanize_absolute_date(bookmark.link_checked_at)}"
+            if self.is_broken and bookmark.link_checked_at
+            else ""
+        )
         self.is_archived = bookmark.is_archived
         self.unread = bookmark.unread
         self.owner = bookmark.owner

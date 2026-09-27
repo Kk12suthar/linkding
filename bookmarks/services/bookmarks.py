@@ -56,6 +56,11 @@ def update_bookmark(bookmark: Bookmark, tag_string, current_user: User):
     # Detect URL change
     original_bookmark = Bookmark.objects.get(id=bookmark.id)
     has_url_changed = original_bookmark.url != bookmark.url
+    if has_url_changed:
+        # Link health belongs to the URL that was checked. Editing the URL
+        # invalidates the previous result until the new URL is checked.
+        bookmark.link_status = None
+        bookmark.link_checked_at = None
     # Update tag list
     _update_bookmark_tags(bookmark, tag_string, current_user)
     # Update dates
@@ -204,6 +209,16 @@ def refresh_bookmarks_metadata(bookmark_ids: [int | str], current_user: User):
     for bookmark in owned_bookmarks:
         tasks.refresh_metadata(bookmark)
         tasks.load_preview_image(current_user, bookmark)
+
+
+def check_bookmarks_links(bookmark_ids: [int | str], current_user: User):
+    sanitized_bookmark_ids = _sanitize_id_list(bookmark_ids)
+    owned_bookmark_ids = Bookmark.objects.filter(
+        owner=current_user, id__in=sanitized_bookmark_ids
+    ).values_list("id", flat=True)
+
+    for bookmark_id in owned_bookmark_ids:
+        tasks.check_link(bookmark_id)
 
 
 def create_html_snapshots(bookmark_ids: list[int | str], current_user: User):

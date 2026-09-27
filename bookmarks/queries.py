@@ -93,6 +93,10 @@ def _convert_ast_to_q_object(ast_node: SearchExpression, profile: UserProfile) -
             return Q(unread=True)
         elif ast_node.keyword.lower() == "untagged":
             return Q(tags=None)
+        elif ast_node.keyword.lower() == "broken":
+            return Q(link_status__gte=400) | Q(
+                link_status=Bookmark.LINK_STATUS_UNREACHABLE
+            )
         else:
             # Unknown keyword, return empty Q object (matches all)
             return Q()
@@ -169,6 +173,11 @@ def _filter_search_query_legacy(
     # Legacy unread bookmarks filter from query
     if query["unread"]:
         query_set = query_set.filter(unread=True)
+    # Legacy broken bookmarks filter from query
+    if query["broken"]:
+        query_set = query_set.filter(
+            Q(link_status__gte=400) | Q(link_status=Bookmark.LINK_STATUS_UNREACHABLE)
+        )
 
     return query_set
 
@@ -411,10 +420,12 @@ def parse_query_string(query_string):
     # Special search commands
     untagged = "!untagged" in keywords
     unread = "!unread" in keywords
+    broken = "!broken" in keywords
 
     return {
         "search_terms": search_terms,
         "tag_names": tag_names,
         "untagged": untagged,
         "unread": unread,
+        "broken": broken,
     }

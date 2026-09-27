@@ -51,6 +51,12 @@ def build_tag_string(tag_names: list[str], delimiter: str = ","):
 
 
 class Bookmark(models.Model):
+    # Link health uses real HTTP status codes when available. A value of zero
+    # means the URL could not be reached, while -1 means the SSRF guard blocked
+    # the request and should not be treated as a broken public link.
+    LINK_STATUS_UNREACHABLE = 0
+    LINK_STATUS_BLOCKED = -1
+
     url = models.CharField(max_length=2048, validators=[BookmarkURLValidator()])
     url_normalized = models.CharField(max_length=2048, blank=True, db_index=True)
     title = models.CharField(max_length=512, blank=True)
@@ -63,6 +69,8 @@ class Bookmark(models.Model):
     web_archive_snapshot_url = models.CharField(max_length=2048, blank=True)
     favicon_file = models.CharField(max_length=512, blank=True)
     preview_image_file = models.CharField(max_length=512, blank=True)
+    link_status = models.IntegerField(null=True, blank=True, db_index=True)
+    link_checked_at = models.DateTimeField(null=True, blank=True)
     unread = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
     shared = models.BooleanField(default=False)

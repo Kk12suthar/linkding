@@ -1,5 +1,6 @@
 import functools
 import logging
+from urllib.parse import urljoin
 
 import waybackpy
 from django.conf import settings
@@ -11,8 +12,12 @@ from huey.exceptions import TaskLockedException
 from waybackpy.exceptions import TooManyRequestsError, WaybackError
 
 from bookmarks.models import Bookmark, BookmarkAsset, UserProfile
-from bookmarks.services import assets, favicon_loader, preview_image_loader
-from bookmarks.services.website_loader import DEFAULT_USER_AGENT, load_website_metadata
+from bookmarks.services import assets, favicon_loader, http_client, preview_image_loader
+from bookmarks.services.website_loader import (
+    DEFAULT_USER_AGENT,
+    fake_request_headers,
+    load_website_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -241,6 +246,83 @@ def _refresh_metadata_task(bookmark_id: int):
 
     bookmark.save()
     logger.info(f"Successfully refreshed metadata for bookmark. url={bookmark.url}")
+
+
+LINK_CHECK_TIMEOUT = 10
+LINK_CHECK_MAX_REDIRECTS = 10
+LINK_CHECK_REDIRECT_STATUSES = (301, 302, 303, 307, 308)
+
+
+def check_link(bookmark_id: int):
+    """Queue a safe availability check for a bookmark URL."""
+    if not settings.LD_DISABLE_BACKGROUND_TASKS:
+        _check_link_task(bookmark_id)
+
+
+def _save_link_status(bookmark_id: int, checked_url: str, link_status: int):
+    # The URL can be edited while the network request is in flight. Only
+    # apply the result if the bookmark still points at the URL that was tested.
+    Bookmark.objects.filter(id=bookmark_id, url=checked_url).update(
+        link_status=link_status,
+        link_checked_at=timezone.now(),
+    )
+
+
+def _request_link_status(method: str, url: str, headers: dict) -> int:
+    request = http_client.head if method == "HEAD" else http_client.get
+
+    for _ in range(LINK_CHECK_MAX_REDIRECTS + 1):
+        response = request(
+            url,
+            headers=headers,
+            timeout=LINK_CHECK_TIMEOUT,
+            allow_redirects=False,
+            stream=True,
+        )
+        try:
+            link_status = response.status_code
+            if link_status not in LINK_CHECK_REDIRECT_STATUSES:
+                return link_status
+
+            location = response.headers.get("Location")
+            if not location:
+                return Bookmark.LINK_STATUS_UNREACHABLE
+
+            url = urljoin(url, location)
+        finally:
+            # Do not let requests preload arbitrary redirect response bodies.
+            response.close()
+
+    # A redirect loop is not a usable link, but it is not an HTTP error from
+    # the final destination either. Treat it like another unreachable result.
+    return Bookmark.LINK_STATUS_UNREACHABLE
+
+
+@task()
+def _check_link_task(bookmark_id: int):
+    try:
+        bookmark = Bookmark.objects.get(id=bookmark_id)
+    except Bookmark.DoesNotExist:
+        return
+
+    checked_url = bookmark.url
+    headers = fake_request_headers()
+
+    try:
+        link_status = _request_link_status("HEAD", checked_url, headers)
+
+        # Some servers reject HEAD even though GET works.
+        if link_status in (405, 501):
+            link_status = _request_link_status("GET", checked_url, headers)
+    except http_client.BlockedAddressError:
+        # Keep this separate from an unreachable public URL. A blocked
+        # internal address is a security decision, not evidence of a dead link.
+        link_status = Bookmark.LINK_STATUS_BLOCKED
+    except http_client.RequestException:
+        # DNS failures, timeouts and connection errors are stored as a
+        # synthetic status instead of being retried forever by Huey.
+        link_status = Bookmark.LINK_STATUS_UNREACHABLE
+    _save_link_status(bookmark_id, checked_url, link_status)
 
 
 def is_html_snapshot_feature_active() -> bool:

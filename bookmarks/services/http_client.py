@@ -29,9 +29,6 @@ the options documentation for details.
 
 Limitations:
 
-- If an HTTP proxy is configured through environment variables, requests
-  bypass the guarded connection classes and connect to the proxy instead,
-  which circumvents the protection.
 - Subprocesses, such as single-file for HTML snapshots, use their own network
   stack and are not covered.
 """
@@ -284,9 +281,16 @@ class GuardedHTTPAdapter(HTTPAdapter):
 
 
 def request(method: str, url: str, **kwargs) -> requests.Response:
+    if "proxies" in kwargs:
+        raise ValueError("Custom proxies are not supported for guarded requests")
+
     # Use a new session per request, as background tasks run in multiple
     # threads and sessions are not guaranteed to be thread-safe
     session = requests.Session()
+    # Do not let environment proxy settings bypass the guarded connection
+    # classes. Requests would otherwise connect to the proxy instead of the
+    # resolved target address, defeating the SSRF check.
+    session.trust_env = False
     adapter = GuardedHTTPAdapter()
     session.mount("http://", adapter)
     session.mount("https://", adapter)
